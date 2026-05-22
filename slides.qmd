@@ -88,7 +88,7 @@ We want to know how the expected value of an observable $O$ will change if we ch
 
 $$ -\frac{1}{\beta} \frac{\mathrm{d} \langle O \rangle }{\mathrm{d} \lambda} = \left \langle O  \frac{\mathrm{d} U}{\mathrm{d} \lambda} \right \rangle -  \langle O \rangle \langle \frac{\mathrm{d} U}{\mathrm{d} \lambda} \rangle $$
 
-where $U$ is the potential energy. Approach used in _ForceBalance_ [@Wang_2014, @Wade_2018]
+where $U$ is the potential energy. Approach used in _ForceBalance_ [@Wang_2014] [@Wade_2018]
 
 In LAMMPS: for each tuneable parameter *λ*
 
@@ -140,7 +140,7 @@ $$
 
 Straightforwardly: _n_ particles into _k_ modes = _O(n k)_ work.
 
-But cos basis lets us use _non-uniform FFT_ [@Barnett_2019, @Barnett_2021]: _O(n + k ln k)_ work.
+But cos basis lets us use _non-uniform FFT_ [@Barnett_2019] [@Barnett_2021]: _O(n + k ln k)_ work.
 
 Can also reuse existing Python functions (`scipy.fft.dct`) for inter-conversion.
 
