@@ -2,6 +2,7 @@
 title: "High-Throughput Force Field Tuning to Reference RDFs"
 subtitle: "With Spectral RDF Estimators and Decorrelated Parameter Gradients"
 author: "Shern Ren Tee"
+date: 22 May 2026
 bibliography: "papers.bib"
 format:
   revealjs:
@@ -21,7 +22,6 @@ format:
     code-line-numbers: true
     code-overflow: scroll
     show-slide-number: all
-editor: source
 ---
 
 ## In A Nutshell
