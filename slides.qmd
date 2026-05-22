@@ -265,13 +265,15 @@ $$
 $$
 
 $$
-R_{ii} = \frac{\text{reg\_strength}}
-{(\text{max\_frac} \cdot |p_i|)^2}
+R_{ii} = \frac{\text{reg_strength}}
+{(\text{max_frac} \cdot |p_i|)^2}
 $$
+
+Also calculate $\rho$: actual residual drop / predicted (bigger = better!)
 
 | Feature | Purpose |
 |---------|---------|
-| λ (adaptive) | Interpolates between gradient descent and Gauss-Newton |
+| λ (adaptive) | Interpolates between Gauss-Newton (small $\lambda$) and gradient descent (large $\lambda$) |
 | R_diag (per-param) | Prevents blowup when `p_i` is small |
 | Hard clip (±25%) | Prevents any single parameter from jumping too far |
 | ρ-based λ tuning | ρ > 0.75 → more Gauss-Newton; ρ < 0.25 → more gradient descent |

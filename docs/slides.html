@@ -1412,9 +1412,10 @@ nvt_prod.xtcu──▶│  Frame-by-frame │───▶ per frame &amp; pair
 \cdot \delta = -J_w^T r_w
 \]</span></p>
 <p><span class="math display">\[
-R_{ii} = \frac{\text{reg\_strength}}
-{(\text{max\_frac} \cdot |p_i|)^2}
+R_{ii} = \frac{\text{reg_strength}}
+{(\text{max_frac} \cdot |p_i|)^2}
 \]</span></p>
+<p>Also calculate <span class="math inline">\(\rho\)</span>: actual residual drop / predicted (bigger = better!)</p>
 <table class="caption-top">
 <colgroup>
 <col style="width: 50%">
@@ -1429,7 +1430,7 @@ R_{ii} = \frac{\text{reg\_strength}}
 <tbody>
 <tr class="odd">
 <td>λ (adaptive)</td>
-<td>Interpolates between gradient descent and Gauss-Newton</td>
+<td>Interpolates between Gauss-Newton (small <span class="math inline">\(\lambda\)</span>) and gradient descent (large <span class="math inline">\(\lambda\)</span>)</td>
 </tr>
 <tr class="even">
 <td>R_diag (per-param)</td>

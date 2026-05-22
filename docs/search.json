@@ -102,7 +102,7 @@
     "href": "slides.html#levenberg-marquardt-lm-step",
     "title": "High-Throughput Force Field Tuning to Reference RDFs",
     "section": "Levenberg-Marquardt (LM) Step",
-    "text": "Levenberg-Marquardt (LM) Step\nStandard LM with trust-region regularization:\n\\[\n(J_w^T J_w + \\lambda \\cdot \\text{diag}(J_w^T J_w) + R_{ii})\n\\cdot \\delta = -J_w^T r_w\n\\]\n\\[\nR_{ii} = \\frac{\\text{reg\\_strength}}\n{(\\text{max\\_frac} \\cdot |p_i|)^2}\n\\]\n\n\n\n\n\n\n\nFeature\nPurpose\n\n\n\n\nλ (adaptive)\nInterpolates between gradient descent and Gauss-Newton\n\n\nR_diag (per-param)\nPrevents blowup when p_i is small\n\n\nHard clip (±25%)\nPrevents any single parameter from jumping too far\n\n\nρ-based λ tuning\nρ &gt; 0.75 → more Gauss-Newton; ρ &lt; 0.25 → more gradient descent"
+    "text": "Levenberg-Marquardt (LM) Step\nStandard LM with trust-region regularization:\n\\[\n(J_w^T J_w + \\lambda \\cdot \\text{diag}(J_w^T J_w) + R_{ii})\n\\cdot \\delta = -J_w^T r_w\n\\]\n\\[\nR_{ii} = \\frac{\\text{reg_strength}}\n{(\\text{max_frac} \\cdot |p_i|)^2}\n\\]\nAlso calculate \\(\\rho\\): actual residual drop / predicted (bigger = better!)\n\n\n\n\n\n\n\nFeature\nPurpose\n\n\n\n\nλ (adaptive)\nInterpolates between Gauss-Newton (small \\(\\lambda\\)) and gradient descent (large \\(\\lambda\\))\n\n\nR_diag (per-param)\nPrevents blowup when p_i is small\n\n\nHard clip (±25%)\nPrevents any single parameter from jumping too far\n\n\nρ-based λ tuning\nρ &gt; 0.75 → more Gauss-Newton; ρ &lt; 0.25 → more gradient descent"
   },
   {
     "objectID": "slides.html#results-50-iterations-of-automated-refinement",
