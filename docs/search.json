@@ -1,0 +1,191 @@
+[
+  {
+    "objectID": "slides.html#in-a-nutshell",
+    "href": "slides.html#in-a-nutshell",
+    "title": "High-Throughput Force Field Tuning to Reference RDFs",
+    "section": "In A Nutshell",
+    "text": "In A Nutshell\n\n\n\nVibe code a bunch of Python\nRun MD with force field parameters\nGet energy finite differences per frame with LAMMPS rerun\nGet RDF discrepancies per frame using spectral Monte Carlo\nDecorrelate (“whiten”) both inputs, then cross-correlate to get the residual gradients\nPredict a new better FF parameter set!"
+  },
+  {
+    "objectID": "slides.html#the-target-aqueous-zn²-system",
+    "href": "slides.html#the-target-aqueous-zn²-system",
+    "title": "High-Throughput Force Field Tuning to Reference RDFs",
+    "section": "The Target: Aqueous Zn²⁺ System",
+    "text": "The Target: Aqueous Zn²⁺ System\n\n\n\nComponent\nAtom Types\nStarting FF\n\n\n\n\nZn²⁺ ion\nZn\n(Duboué-Dijon et al. 2017)\n\n\nCl⁻ ion\nCl\n(Loche et al. 2021)\n\n\nUrea\nHU, OU, NU, CU\n(Anker et al. 2023)\n\n\nWater\nHW, OW\n(Fuentes-Azcatl and Alejandre 2014)\n\n\n\n\n8 unique atom types → 36 pair RDFs theoretically possible\nIons + organic co-solvent = complex environment\nWe tune parameters so simulated RDFs match AIMD reference data"
+  },
+  {
+    "objectID": "slides.html#the-starting-point",
+    "href": "slides.html#the-starting-point",
+    "title": "High-Throughput Force Field Tuning to Reference RDFs",
+    "section": "The Starting Point",
+    "text": "The Starting Point"
+  },
+  {
+    "objectID": "slides.html#iterative-ff-improvements",
+    "href": "slides.html#iterative-ff-improvements",
+    "title": "High-Throughput Force Field Tuning to Reference RDFs",
+    "section": "Iterative FF Improvements:",
+    "text": "Iterative FF Improvements:\n\nA → B → C → A → B → C → …\n\n\n\n\n\n\n\n\n\nPhase\nWhat\nWall-Time Cost\n\n\n\n\nA. MD Simulation\nRun NVT with current FF parameters\n~1 hr (2 ns)\n\n\nB. Finite Differences\nRerun trajectory with ±0.5% perturbations\n1-2 mins\n\n\nC. Optimisation\nBuild Jacobian, take Levenberg-Marquardt step\n1-2 mins\n\n\n\nBut why??"
+  },
+  {
+    "objectID": "slides.html#finite-difference-motivation-and-method",
+    "href": "slides.html#finite-difference-motivation-and-method",
+    "title": "High-Throughput Force Field Tuning to Reference RDFs",
+    "section": "Finite-Difference: Motivation and Method",
+    "text": "Finite-Difference: Motivation and Method\nWe want to know how the expected value of an observable \\(O\\) will change if we change some parameter \\(\\lambda\\). By stat mech:\n\\[ -\\frac{1}{\\beta} \\frac{\\mathrm{d} \\langle O \\rangle }{\\mathrm{d} \\lambda} = \\left \\langle O  \\frac{\\mathrm{d} U}{\\mathrm{d} \\lambda} \\right \\rangle -  \\langle O \\rangle \\langle \\frac{\\mathrm{d} U}{\\mathrm{d} \\lambda} \\rangle \\]\nwhere \\(U\\) is the potential energy. Approach used in ForceBalance Wade et al. (2018)\nIn LAMMPS: for each tuneable parameter λ\n\nRescale λ by 0.995 and 1.005\nRe-run the identical trajectory (rerun nvt_prod.xtc)\nCompute energy at every frame for each rescaling\nForm the finite-difference derivative:\n\n\\[\n\\frac{\\partial U}{\\partial \\lambda} \\approx\n\\frac{U(1.005\\lambda) - U(0.995\\lambda)}{0.01\\lambda}\n\\]"
+  },
+  {
+    "objectID": "slides.html#tuneable-parameters",
+    "href": "slides.html#tuneable-parameters",
+    "title": "High-Throughput Force Field Tuning to Reference RDFs",
+    "section": "17 Tuneable Parameters",
+    "text": "17 Tuneable Parameters\n\n\n\n\n\n\n\n\n\nCategory\nVariables\nCount\n\n\n\n\nCl LJ\nepsCl, sigCl\n2\n\n\nZn LJ\nepsZn, sigZn, sZnCl\n3\n\n\nUrea LJ\nepsHU, sigHU, epsOU, sigOU, epsNU, sigNU, epsCU, sigCU\n8\n\n\nCharges\nqZn, qHU, qOU, qHW\n4\n\n\n\n\n\neps* = LJ ε (kcal/mol), sig* = LJ σ (Å)\nsZnCl = cross-pair sigma (overrides mixing rule)\nq* = partial charge (|e|)\nCross-pair LJ between unlike types computed via Lorentz-Berthelot mixing"
+  },
+  {
+    "objectID": "slides.html#spectral-monte-carlo-rdf",
+    "href": "slides.html#spectral-monte-carlo-rdf",
+    "title": "High-Throughput Force Field Tuning to Reference RDFs",
+    "section": "Spectral Monte Carlo RDF",
+    "text": "Spectral Monte Carlo RDF\nEvaluate RDF with spectral Monte Carlo on a functional basis set (Patrone and Rosch 2017):\n\\[ g(r) = \\sum a_j \\phi_j(r); a_j = \\frac{V}{N_A N_B} \\sum_{\\mathrm{pairs}} \\frac{\\phi(j) r_{\\mathrm{pair}}}{4 \\pi r_\\mathrm{pair}^2} \\]\nRepresent g(r) on [r_min, r_max] as a discrete cosine series\n\\[\ng(r) \\approx \\sum_{k=0}^{N-1} c_k \\cos\\!\\left(k \\cdot\n\\frac{\\pi(r - r_\\text{min})}{r_\\text{max} - r_\\text{min}}\\right)\n\\]\n\n\n\nAspect\nHistogram\nCosine Coefficients\n\n\n\n\nDimension\n100–200 bins\n128 modes\n\n\nSmoothness\nNoisy per-frame\nInherently smooth\n\n\nCorrelation\nHigh\nLower\n\n\n\nCos basis is particularly nice because we can quickly process distances using non-uniform FFT codes, and reuse existing Python functions (scipy.fft.dct) for inter-conversion."
+  },
+  {
+    "objectID": "slides.html#example",
+    "href": "slides.html#example",
+    "title": "High-Throughput Force Field Tuning to Reference RDFs",
+    "section": "Example",
+    "text": "Example"
+  },
+  {
+    "objectID": "slides.html#computing-coefficients-from-raw-distances",
+    "href": "slides.html#computing-coefficients-from-raw-distances",
+    "title": "High-Throughput Force Field Tuning to Reference RDFs",
+    "section": "Computing Coefficients from Raw Distances",
+    "text": "Computing Coefficients from Raw Distances\nFor a frame with pair distances {rᵢ}:\n\\[\nc_k = \\sum_i \\frac{1}{r_i^2} \\cdot \\cos(k \\cdot \\theta_i),\n\\quad \\theta_i \\in [0, \\pi]\n\\]"
+  },
+  {
+    "objectID": "slides.html#per-pair-pca",
+    "href": "slides.html#per-pair-pca",
+    "title": "High-Throughput Force Field Tuning to Reference RDFs",
+    "section": "Per-Pair PCA",
+    "text": "Per-Pair PCA\nFor each atom pair (e.g., Zn–OU, Cl–HW), the trajectory of cosine coefficients is (nframes, 128).\n\nCovariance PCA: Diagonalise the 128×128 mode covariance matrix\nKeep top nvecs (5–10) components — typically captures 80–95% of variance\nProject both simulation trajectory and reference RDF into PCA space\n\n\n128 modes → nvecs PCA loadings per pair\n\nResiduals = simulated PCA loadings − reference PCA loadings"
+  },
+  {
+    "objectID": "slides.html#why-per-pair-pca",
+    "href": "slides.html#why-per-pair-pca",
+    "title": "High-Throughput Force Field Tuning to Reference RDFs",
+    "section": "Why Per-Pair PCA?",
+    "text": "Why Per-Pair PCA?\n\n\n\n\n\n\n\n\nFactor\nGlobal PCA (all pairs)\nPer-Pair PCA\n\n\n\n\nPhysical meaning\nMixes unrelated chemistry\nPure per-pair fluctuations\n\n\nVariance capture\nOne size fits none\nOptimal per pair\n\n\nWeighting\nHard to balance pairs\nPair-specific via eigenvalues\n\n\n\nWhy it matters: Zn–Cl ion pairing fluctuates very differently from OW–HW water structure. Each pair has its own dominant modes. Combining them would wash out chemically meaningful signals.\n\nPCA weights (√eigenvalue/Σeigenvalues) automatically down-weight noisy high-order modes\nThis means the optimiser focuses on physically meaningful variations, not noise"
+  },
+  {
+    "objectID": "slides.html#further-decorrelations",
+    "href": "slides.html#further-decorrelations",
+    "title": "High-Throughput Force Field Tuning to Reference RDFs",
+    "section": "Further Decorrelations",
+    "text": "Further Decorrelations\nAfter PCA, we have a large, structured residual vector r (length = npair × nvecs).\nProblem 1: Energy derivatives ∂E/∂λ for different parameters are correlated — changing ε_Zn and ε_Cl both affect the same Zn–Cl RDF.\nProblem 2: PCA residuals across different pairs are correlated — a fluctuation in Zn–OU also affects Zn–OW through shared Zn motions.\n\nSolution: Whiten twice."
+  },
+  {
+    "objectID": "slides.html#whitening-step-1-finite-differences",
+    "href": "slides.html#whitening-step-1-finite-differences",
+    "title": "High-Throughput Force Field Tuning to Reference RDFs",
+    "section": "Whitening Step 1: Finite Differences",
+    "text": "Whitening Step 1: Finite Differences\nFindif matrix: (nframes × 17 parameters)\n\nCov(findifs) → eigendecomposition → Mahalanobis whitening\n\nJ' = L_fd⁻¹ · J     (decorrelated across parameters)\n\nUses OAS shrinkage for robust covariance estimation\nResult: each parameter’s sensitivity is statistically independent"
+  },
+  {
+    "objectID": "slides.html#whitening-step-2-residual-covariance",
+    "href": "slides.html#whitening-step-2-residual-covariance",
+    "title": "High-Throughput Force Field Tuning to Reference RDFs",
+    "section": "Whitening Step 2: Residual Covariance",
+    "text": "Whitening Step 2: Residual Covariance\nPer-frame PCA residuals: (nframes × nrows)\n\nCov(residuals) → OAS shrinkage → Mahalanobis whitening\n\nJ_w = L_res⁻¹ · J'     (decorrelated across residual dimensions)\nr_w = L_res⁻¹ · r'\nw = 1 (uniform — data is now uncorrelated)\nWhy double whitening: The LM algorithm assumes uncorrelated, equal-variance residuals. Whitening transforms correlated data into canonical form so standard LM works optimally. Double whitening also produces a well-conditioned Hessian J_wᵀJ_w ≈ I."
+  },
+  {
+    "objectID": "slides.html#end-to-end-data-flow",
+    "href": "slides.html#end-to-end-data-flow",
+    "title": "High-Throughput Force Field Tuning to Reference RDFs",
+    "section": "End-to-End Data Flow",
+    "text": "End-to-End Data Flow\n                 ┌─────────────────┐\nTrajectory       │  NUFFT per pair │    128 cosine modes\n nvt_prod.xtc ──▶│  Frame-by-frame │───▶ per frame & pair\n                 └─────────────────┘\n                                               │\n                 ┌─────────────────┐            ▼\n  findif.txt ───▶│  Mahalanobis    │     ┌──────────┐\n  (∂E/∂λ per    │  whitening      │     │ Per-pair │\n   frame)       └─────────────────┘     │   PCA    │\n                       │                └──────────┘\n                       ▼                     │\n                    J_pca ◀──────────────────┘\n                       │          (nrows × nvars)\n                       ▼\n                 ┌─────────────────┐\n                 │  Cov(ε_frames)  │     Mahalanobis whitening\n                 │  OAS shrinkage  │───▶ on residual space\n                 └─────────────────┘\n                       │\n                       ▼\n                 J_w, r_w, w=1\n                       │\n                       ▼\n                 ┌─────────────────┐\n                 │  LM Optimiser   │     λ-adaptive, hard-clipped\n                 │  (trust-region) │───▶ ff.var{N+1}\n                 └─────────────────┘"
+  },
+  {
+    "objectID": "slides.html#levenberg-marquardt-lm-step",
+    "href": "slides.html#levenberg-marquardt-lm-step",
+    "title": "High-Throughput Force Field Tuning to Reference RDFs",
+    "section": "Levenberg-Marquardt (LM) Step",
+    "text": "Levenberg-Marquardt (LM) Step\nStandard LM with trust-region regularization:\n\\[\n(J_w^T J_w + \\lambda \\cdot \\text{diag}(J_w^T J_w) + R_{ii})\n\\cdot \\delta = -J_w^T r_w\n\\]\n\\[\nR_{ii} = \\frac{\\text{reg\\_strength}}\n{(\\text{max\\_frac} \\cdot |p_i|)^2}\n\\]\n\n\n\n\n\n\n\nFeature\nPurpose\n\n\n\n\nλ (adaptive)\nInterpolates between gradient descent and Gauss-Newton\n\n\nR_diag (per-param)\nPrevents blowup when p_i is small\n\n\nHard clip (±25%)\nPrevents any single parameter from jumping too far\n\n\nρ-based λ tuning\nρ &gt; 0.75 → more Gauss-Newton; ρ &lt; 0.25 → more gradient descent"
+  },
+  {
+    "objectID": "slides.html#results-50-iterations-of-automated-refinement",
+    "href": "slides.html#results-50-iterations-of-automated-refinement",
+    "title": "High-Throughput Force Field Tuning to Reference RDFs",
+    "section": "Results: ~50 Iterations of Automated Refinement",
+    "text": "Results: ~50 Iterations of Automated Refinement\n\n52 parameter files (ff.var0 through ff.var51)\n51 RDF comparison plots (ref vs. sim at each iteration)\nNo human intervention between iterations — fully automated SLURM job"
+  },
+  {
+    "objectID": "slides.html#results",
+    "href": "slides.html#results",
+    "title": "High-Throughput Force Field Tuning to Reference RDFs",
+    "section": "Results:",
+    "text": "Results:"
+  },
+  {
+    "objectID": "slides.html#this-slide-is-why-you-should-never-let-an-ai-write-your-slides",
+    "href": "slides.html#this-slide-is-why-you-should-never-let-an-ai-write-your-slides",
+    "title": "High-Throughput Force Field Tuning to Reference RDFs",
+    "section": "This Slide Is Why You Should Never Let An AI Write Your Slides",
+    "text": "This Slide Is Why You Should Never Let An AI Write Your Slides\n\n\n\nTraditional\nThis Work\n\n\n\n\nWeeks/months of expert tweaking\nHours of automated iteration\n\n\nFit a handful of parameters\n17 parameters simultaneously\n\n\nManually judge RDF quality\nQuantitative cost function\n\n\nOne simulation per guess\nRerun = instant “what-if”\n\n\nHard to extend to new systems\nGeneric: swap ref data, run"
+  },
+  {
+    "objectID": "slides.html#questions",
+    "href": "slides.html#questions",
+    "title": "High-Throughput Force Field Tuning to Reference RDFs",
+    "section": "Questions?",
+    "text": "Questions?"
+  },
+  {
+    "objectID": "slides.html#code-structure",
+    "href": "slides.html#code-structure",
+    "title": "High-Throughput Force Field Tuning to Reference RDFs",
+    "section": "Code Structure",
+    "text": "Code Structure\nPCA2-zn-des/\n├── mar/                  # Python analysis & optimisation\n│   ├── step_ww_rw.py     # ★ Main workflow (WW optimiser)\n│   ├── cosrdf.py         # Cosine-coefficient RDF container (HDF5)\n│   ├── trajectory.py     # NUFFT cosine coefficient computation\n│   ├── optimizer.py      # Levenberg-Marquardt solver\n│   ├── ff_params.py      # LAMMPS FF parameter resolution\n│   ├── histrdf.py        # Alternative histogram-based RDF\n│   └── prepare_ref.py    # Import AIMD reference RDFs\n├── scripts/              # LAMMPS inputs & batch scripts\n│   ├── in.nvt            # NVT MD simulation\n│   ├── in.findif         # Finite-difference energy computation\n│   ├── ff.var{N}         # Variable FF params per iteration\n│   ├── findif.sh         # Post-process findif output\n│   └── iter.sh           # SLURM batch: iterations 31–50\n└── iter{N}/              # Per-iteration outputs"
+  },
+  {
+    "objectID": "slides.html#dct-vs.-nufft",
+    "href": "slides.html#dct-vs.-nufft",
+    "title": "High-Throughput Force Field Tuning to Reference RDFs",
+    "section": "DCT vs. NUFFT",
+    "text": "DCT vs. NUFFT\nThere are two cosine representations used:\n\n\n\n\n\n\n\n\nMethod\nUse\nHow\n\n\n\n\nDCT type-1\nReference RDFs, reconstruction\nscipy.fft.dct on uniform grid\n\n\nNUFFT type-1\nRaw trajectory frames\nfinufft on non-uniform distances\n\n\n\nWhy NUFFT for frames: pair distances are not on a grid — they’re scattered points. NUFFT computes exact cosine coefficients without binning or interpolation errors.\nBoundary scaling conventions:\n\nForward: c₀ /= √2, c_{N-1} *= 2\nInverse: c₀ *= √2, c_{N-1} /= 2"
+  },
+  {
+    "objectID": "slides.html#pca-algorithm",
+    "href": "slides.html#pca-algorithm",
+    "title": "High-Throughput Force Field Tuning to Reference RDFs",
+    "section": "PCA Algorithm",
+    "text": "PCA Algorithm\ndef PCA(data, dims=2):\n    data_mean = data.mean(axis=0)\n    data_c   = data - data_mean\n    R = np.cov(data_c, rowvar=False)      # (nmode, nmode)\n    evals, evecs = scipy.linalg.eigh(R)\n    idx = np.argsort(evals)[::-1]          # largest first\n    evecs = evecs[:, idx][:, :dims]        # top dims\n    evals = evals[idx]\n    frame_loadings = evecs.T @ data_c.T    # project frames\n    return data_mean, evecs, frame_loadings.T, evals\nTarget projection:\ntarget_loadings = evecs.T @ (target_ref - series_mean)\nJacobian via per-frame covariance:\njac[idx*nvecs : (idx+1)*nvecs] = (frame_resids.T @ findifs) / nframes"
+  },
+  {
+    "objectID": "slides.html#per-pair-details",
+    "href": "slides.html#per-pair-details",
+    "title": "High-Throughput Force Field Tuning to Reference RDFs",
+    "section": "Per-Pair Details",
+    "text": "Per-Pair Details\n\n\n\n\nPair\nxmin (nm)\nxmax (nm)\nChemistry\n\n\n\n\nZn_Cl\n~0.12\n~0.60\nIon pairing\n\n\nZn_OU\n~0.12\n~0.60\nZn–urea oxygen\n\n\nZn_OW\n~0.12\n~0.60\nZn–water oxygen\n\n\nOU_HW\n~0.12\n~0.60\nUrea O – water H\n\n\nHW_OW\n~0.12\n~0.60\nWater structure\n\n\n\n\n\nEach pair has its own spherical prefactor normalisation\nSelf-pairs (i=j) get factor of 2\nLoop ordering groups pairs for FastNS box reuse (by descending pair count)"
+  },
+  {
+    "objectID": "slides.html#parameter-downweighting",
+    "href": "slides.html#parameter-downweighting",
+    "title": "High-Throughput Force Field Tuning to Reference RDFs",
+    "section": "Parameter Downweighting",
+    "text": "Parameter Downweighting\nThe pipeline supports selective pair-type weighting:\n--downweight OU 2.0    # upweight urea-oxygen pairs\n--downweight ZN 0.5    # downweight zinc-containing pairs\nWhy this matters: Some RDFs are better constrained by AIMD than others, or more important for the target chemistry. This lets the optimiser focus effort where it matters."
+  },
+  {
+    "objectID": "slides.html#lm-implementation-details",
+    "href": "slides.html#lm-implementation-details",
+    "title": "High-Throughput Force Field Tuning to Reference RDFs",
+    "section": "LM Implementation Details",
+    "text": "LM Implementation Details\nKey constants from optimizer.py:\nLAM_INIT_FACTOR  = 1e-6   # λ₀ = 1e-6 × max(diag(H), 1)\nLAM_INCREASE     = 2.0    # double λ when ρ &lt; 0.25\nLAM_DECREASE     = 0.5    # halve λ when ρ &gt; 0.75\nMAX_LAM_ADJUST   = 20     # max inner-loop adjustments\nHARD_CLIP_FRAC   = 0.05   # default 5% (iter.sh uses 25%)\nRHO_GOOD = 0.75, RHO_BAD = 0.25\nρ (gain ratio):\n\\[\n\\rho = \\frac{\\text{cost}_\\text{old} - \\text{cost}_\\text{new}}\n{\\text{predicted reduction}}\n\\]\n\nρ ≈ 1 → model is accurate → decrease λ (trust the quadratic model)\nρ ≈ 0 → model is poor → increase λ (move toward gradient descent)\nλ is persisted across iterations in lm_state.txt"
+  },
+  {
+    "objectID": "slides.html#why-oas-shrinkage",
+    "href": "slides.html#why-oas-shrinkage",
+    "title": "High-Throughput Force Field Tuning to Reference RDFs",
+    "section": "Why OAS Shrinkage?",
+    "text": "Why OAS Shrinkage?\nOracle Approximating Shrinkage provides a well-conditioned regularized covariance estimate:\n\\[\n\\Sigma_\\text{OAS} = (1 - \\rho) S + \\rho \\cdot \\text{tr}(S)/p \\cdot I\n\\]\nwhere S is the sample covariance and ρ is the optimal shrinkage intensity.\nWhy not raw sample covariance: with ~120 frames estimating a ~60×60 covariance matrix, raw estimates are singular and noisy. OAS automatically finds the optimal shrinkage toward a well-conditioned diagonal target.\nDiagnostics reported: shrinkage %, condition number, effective DOF.\n\n\n\n\nAnker, Samira, David McKechnie, Paul Mulheran, Jan Sefcik, and Karen Johnston. 2023. “Assessment of GAFF and OPLS Force Fields for Urea: Crystal and Aqueous Solution Properties.” Crystal Growth &Amp; Design 24 (1): 143–58. https://doi.org/10.1021/acs.cgd.3c00785.\n\n\nDuboué-Dijon, Elise, Philip E. Mason, Henry E. Fischer, and Pavel Jungwirth. 2017. “Hydration and Ion Pairing in Aqueous Mg&lt;sup&gt;2+&lt;/Sup&gt; and Zn&lt;sup&gt;2+&lt;/Sup&gt; Solutions: Force-Field Description Aided by Neutron Scattering Experiments and Ab Initio Molecular Dynamics Simulations.” The Journal of Physical Chemistry B 122 (13): 3296–306. https://doi.org/10.1021/acs.jpcb.7b09612.\n\n\nFuentes-Azcatl, Raúl, and José Alejandre. 2014. “Non-Polarizable Force Field of Water Based on the Dielectric Constant: TIP4P/ε.” The Journal of Physical Chemistry B 118 (5): 1263–72. https://doi.org/10.1021/jp410865y.\n\n\nLoche, Philip, Patrick Steinbrunner, Sean Friedowitz, Roland R. Netz, and Douwe Jan Bonthuis. 2021. “Transferable Ion Force Fields in Water from a Simultaneous Optimization of Ion Solvation and Ion–Ion Interaction.” The Journal of Physical Chemistry B 125 (30): 8581–87. https://doi.org/10.1021/acs.jpcb.1c05303.\n\n\nPatrone, Paul N., and Thomas W. Rosch. 2017. “Beyond Histograms: Efficiently Estimating Radial Distribution Functions via Spectral Monte Carlo.” The Journal of Chemical Physics 146 (9): 094107. https://doi.org/10.1063/1.4977516.\n\n\nWade, Alexander D., Lee-Ping Wang, and David J. Huggins. 2018. “Assimilating Radial Distribution Functions to Build Water Models with Improved Structural Properties.” Journal of Chemical Information and Modeling 58 (9): 1766–78. https://doi.org/10.1021/acs.jcim.8b00166.\n\n\nWang, Lee-Ping, Todd J. Martinez, and Vijay S. Pande. 2014. “Building Force Fields: An Automatic, Systematic, and Reproducible Approach.” The Journal of Physical Chemistry Letters 5 (11): 1885–91. https://doi.org/10.1021/jz500737m."
+  }
+]
