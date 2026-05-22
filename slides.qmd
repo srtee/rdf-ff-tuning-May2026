@@ -11,8 +11,6 @@ format:
     self-contained: true
     slide-number: c/t
     transition: none
-    width: 1050
-    height: 700
     margin: 0.1
     center: false
     progress: true
