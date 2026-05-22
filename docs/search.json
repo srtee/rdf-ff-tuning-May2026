@@ -46,7 +46,7 @@
     "href": "slides.html#spectral-monte-carlo-rdf",
     "title": "High-Throughput Force Field Tuning to Reference RDFs",
     "section": "Spectral Monte Carlo RDF",
-    "text": "Spectral Monte Carlo RDF\nEvaluate RDF with spectral Monte Carlo on a functional basis set (Patrone and Rosch 2017):\n\\[ g(r) = \\sum a_j \\phi_j(r); a_j = \\frac{V}{N_A N_B} \\sum_{\\mathrm{pairs}} \\frac{\\phi(j) r_{\\mathrm{pair}}}{4 \\pi r_\\mathrm{pair}^2} \\]\nRepresent g(r) on [r_min, r_max] as a discrete cosine series\n\\[\ng(r) \\approx \\sum_{k=0}^{N-1} c_k \\cos\\!\\left(k \\cdot\n\\frac{\\pi(r - r_\\text{min})}{r_\\text{max} - r_\\text{min}}\\right)\n\\]\n\n\n\nAspect\nHistogram\nCosine Coefficients\n\n\n\n\nDimension\n100–200 bins\n128 modes\n\n\nSmoothness\nNoisy per-frame\nInherently smooth\n\n\nCorrelation\nHigh\nLower\n\n\n\nCos basis is particularly nice because we can quickly process distances using non-uniform FFT codes, and reuse existing Python functions (scipy.fft.dct) for inter-conversion."
+    "text": "Spectral Monte Carlo RDF\nEvaluate RDF with spectral Monte Carlo on a functional basis set (Patrone and Rosch 2017):\n\\[ g(r) = \\sum a_j \\phi_j(r); a_j = \\frac{V}{N_A N_B} \\sum_{\\mathrm{pairs}} \\frac{\\phi(j) r_{\\mathrm{pair}}}{4 \\pi r_\\mathrm{pair}^2} \\]\nRepresent g(r) on [r_min, r_max] as a discrete cosine series\n\\[\ng(r) \\approx \\sum_{k=0}^{N-1} c_k \\cos\\!\\left(k \\cdot\n\\frac{\\pi(r - r_\\text{min})}{r_\\text{max} - r_\\text{min}}\\right)\n\\]\n\n\n\nAspect\nHistogram\nCosine Coefficients\n\n\n\n\nDimension\n100–200 bins\n128 modes\n\n\nSmoothness\nNoisy per-frame\nInherently smooth\n\n\nCorrelation\nHigh\nLower\n\n\n\nStraightforwardly: n particles into k modes = O(n k) work.\nBut cos basis lets us use non-uniform FFT Barnett (2021): O(n + k ln k) work.\nCan also reuse existing Python functions (scipy.fft.dct) for inter-conversion."
   },
   {
     "objectID": "slides.html#example",
@@ -54,13 +54,6 @@
     "title": "High-Throughput Force Field Tuning to Reference RDFs",
     "section": "Example",
     "text": "Example"
-  },
-  {
-    "objectID": "slides.html#computing-coefficients-from-raw-distances",
-    "href": "slides.html#computing-coefficients-from-raw-distances",
-    "title": "High-Throughput Force Field Tuning to Reference RDFs",
-    "section": "Computing Coefficients from Raw Distances",
-    "text": "Computing Coefficients from Raw Distances\nFor a frame with pair distances {rᵢ}:\n\\[\nc_k = \\sum_i \\frac{1}{r_i^2} \\cdot \\cos(k \\cdot \\theta_i),\n\\quad \\theta_i \\in [0, \\pi]\n\\]"
   },
   {
     "objectID": "slides.html#per-pair-pca",
@@ -88,7 +81,7 @@
     "href": "slides.html#whitening-step-1-finite-differences",
     "title": "High-Throughput Force Field Tuning to Reference RDFs",
     "section": "Whitening Step 1: Finite Differences",
-    "text": "Whitening Step 1: Finite Differences\nFindif matrix: (nframes × 17 parameters)\n\nCov(findifs) → eigendecomposition → Mahalanobis whitening\n\nJ' = L_fd⁻¹ · J     (decorrelated across parameters)\n\nUses OAS shrinkage for robust covariance estimation\nResult: each parameter’s sensitivity is statistically independent"
+    "text": "Whitening Step 1: Finite Differences\nFindif matrix: (nframes × 17 parameters)\n\nCov(findifs) → eigendecomposition → Mahalanobis whitening\n\nJ' = L_fd⁻¹ · J     (decorrelated across parameters)\n\nUses OAS shrinkage for robust covariance estimation (Chen et al. 2010)\nResult: each parameter’s sensitivity is statistically independent"
   },
   {
     "objectID": "slides.html#whitening-step-2-residual-covariance",
@@ -102,7 +95,7 @@
     "href": "slides.html#end-to-end-data-flow",
     "title": "High-Throughput Force Field Tuning to Reference RDFs",
     "section": "End-to-End Data Flow",
-    "text": "End-to-End Data Flow\n                 ┌─────────────────┐\nTrajectory       │  NUFFT per pair │    128 cosine modes\n nvt_prod.xtc ──▶│  Frame-by-frame │───▶ per frame & pair\n                 └─────────────────┘\n                                               │\n                 ┌─────────────────┐            ▼\n  findif.txt ───▶│  Mahalanobis    │     ┌──────────┐\n  (∂E/∂λ per    │  whitening      │     │ Per-pair │\n   frame)       └─────────────────┘     │   PCA    │\n                       │                └──────────┘\n                       ▼                     │\n                    J_pca ◀──────────────────┘\n                       │          (nrows × nvars)\n                       ▼\n                 ┌─────────────────┐\n                 │  Cov(ε_frames)  │     Mahalanobis whitening\n                 │  OAS shrinkage  │───▶ on residual space\n                 └─────────────────┘\n                       │\n                       ▼\n                 J_w, r_w, w=1\n                       │\n                       ▼\n                 ┌─────────────────┐\n                 │  LM Optimiser   │     λ-adaptive, hard-clipped\n                 │  (trust-region) │───▶ ff.var{N+1}\n                 └─────────────────┘"
+    "text": "End-to-End Data Flow\n                ┌─────────────────┐\nTrajectory      │  NUFFT per pair │    128 cosine modes\nnvt_prod.xtcu──▶│  Frame-by-frame │───▶ per frame & pair\n                └─────────────────┘\n                                               │\n                ┌─────────────────┐            ▼\n findif.txt ───▶│  Mahalanobis    │     ┌──────────┐\n  (∂E/∂λ per    │  whitening      │     │ Per-pair │\n   frame)       └─────────────────┘     │   PCA    │\n                       │                └──────────┘\n                       ▼                     │\n                    J_pca ◀──────────────────┘\n                       │          (nrows × nvars)\n                       ▼\n                 ┌─────────────────┐\n                 │  Cov(ε_frames)  │     Mahalanobis whitening\n                 │  OAS shrinkage  │───▶ on residual space\n                 └─────────────────┘\n                       │\n                       ▼\n                 J_w, r_w, w=1\n                       │\n                       ▼\n                 ┌─────────────────┐\n                 │  LM Optimiser   │     λ-adaptive, hard-clipped\n                 │  (trust-region) │───▶ ff.var{N+1}\n                 └─────────────────┘"
   },
   {
     "objectID": "slides.html#levenberg-marquardt-lm-step",
@@ -119,11 +112,18 @@
     "text": "Results: ~50 Iterations of Automated Refinement\n\n52 parameter files (ff.var0 through ff.var51)\n51 RDF comparison plots (ref vs. sim at each iteration)\nNo human intervention between iterations — fully automated SLURM job"
   },
   {
-    "objectID": "slides.html#results",
-    "href": "slides.html#results",
+    "objectID": "slides.html#how-it-started",
+    "href": "slides.html#how-it-started",
     "title": "High-Throughput Force Field Tuning to Reference RDFs",
-    "section": "Results:",
-    "text": "Results:"
+    "section": "How It Started …",
+    "text": "How It Started …"
+  },
+  {
+    "objectID": "slides.html#how-its-going",
+    "href": "slides.html#how-its-going",
+    "title": "High-Throughput Force Field Tuning to Reference RDFs",
+    "section": "… How It’s Going",
+    "text": "… How It’s Going"
   },
   {
     "objectID": "slides.html#this-slide-is-why-you-should-never-let-an-ai-write-your-slides",
@@ -131,6 +131,13 @@
     "title": "High-Throughput Force Field Tuning to Reference RDFs",
     "section": "This Slide Is Why You Should Never Let An AI Write Your Slides",
     "text": "This Slide Is Why You Should Never Let An AI Write Your Slides\n\n\n\nTraditional\nThis Work\n\n\n\n\nWeeks/months of expert tweaking\nHours of automated iteration\n\n\nFit a handful of parameters\n17 parameters simultaneously\n\n\nManually judge RDF quality\nQuantitative cost function\n\n\nOne simulation per guess\nRerun = instant “what-if”\n\n\nHard to extend to new systems\nGeneric: swap ref data, run"
+  },
+  {
+    "objectID": "slides.html#references",
+    "href": "slides.html#references",
+    "title": "High-Throughput Force Field Tuning to Reference RDFs",
+    "section": "References",
+    "text": "References\n\n\nAnker, Samira, David McKechnie, Paul Mulheran, Jan Sefcik, and Karen Johnston. 2023. “Assessment of GAFF and OPLS Force Fields for Urea: Crystal and Aqueous Solution Properties.” Crystal Growth &Amp; Design 24 (1): 143–58. https://doi.org/10.1021/acs.cgd.3c00785.\n\n\nBarnett, Alex H. 2021. “Aliasing Error of the Exp(beta Sqrt(1-z^2)) Kernel in the Nonuniform Fast Fourier Transform.” Applied and Computational Harmonic Analysis 51 (March): 1–16. https://doi.org/10.1016/j.acha.2020.10.002.\n\n\nBarnett, Alexander H., Jeremy Magland, and Ludvig af Klinteberg. 2019. “A Parallel Nonuniform Fast Fourier Transform Library Based on an ‘Exponential of Semicircle’ Kernel.” SIAM Journal on Scientific Computing 41 (5): C479–504. https://doi.org/10.1137/18m120885x.\n\n\nChen, Yilun, Ami Wiesel, Yonina C. Eldar, and Alfred O. Hero. 2010. “Shrinkage Algorithms for MMSE Covariance Estimation.” IEEE Transactions on Signal Processing 58 (10): 5016–29. https://doi.org/10.1109/tsp.2010.2053029.\n\n\nDuboué-Dijon, Elise, Philip E. Mason, Henry E. Fischer, and Pavel Jungwirth. 2017. “Hydration and Ion Pairing in Aqueous Mg&lt;sup&gt;2+&lt;/Sup&gt; and Zn&lt;sup&gt;2+&lt;/Sup&gt; Solutions: Force-Field Description Aided by Neutron Scattering Experiments and Ab Initio Molecular Dynamics Simulations.” The Journal of Physical Chemistry B 122 (13): 3296–306. https://doi.org/10.1021/acs.jpcb.7b09612.\n\n\nFuentes-Azcatl, Raúl, and José Alejandre. 2014. “Non-Polarizable Force Field of Water Based on the Dielectric Constant: TIP4P/ε.” The Journal of Physical Chemistry B 118 (5): 1263–72. https://doi.org/10.1021/jp410865y.\n\n\nLoche, Philip, Patrick Steinbrunner, Sean Friedowitz, Roland R. Netz, and Douwe Jan Bonthuis. 2021. “Transferable Ion Force Fields in Water from a Simultaneous Optimization of Ion Solvation and Ion–Ion Interaction.” The Journal of Physical Chemistry B 125 (30): 8581–87. https://doi.org/10.1021/acs.jpcb.1c05303.\n\n\nPatrone, Paul N., and Thomas W. Rosch. 2017. “Beyond Histograms: Efficiently Estimating Radial Distribution Functions via Spectral Monte Carlo.” The Journal of Chemical Physics 146 (9): 094107. https://doi.org/10.1063/1.4977516.\n\n\nWade, Alexander D., Lee-Ping Wang, and David J. Huggins. 2018. “Assimilating Radial Distribution Functions to Build Water Models with Improved Structural Properties.” Journal of Chemical Information and Modeling 58 (9): 1766–78. https://doi.org/10.1021/acs.jcim.8b00166.\n\n\nWang, Lee-Ping, Todd J. Martinez, and Vijay S. Pande. 2014. “Building Force Fields: An Automatic, Systematic, and Reproducible Approach.” The Journal of Physical Chemistry Letters 5 (11): 1885–91. https://doi.org/10.1021/jz500737m."
   },
   {
     "objectID": "slides.html#questions",
@@ -186,6 +193,6 @@
     "href": "slides.html#why-oas-shrinkage",
     "title": "High-Throughput Force Field Tuning to Reference RDFs",
     "section": "Why OAS Shrinkage?",
-    "text": "Why OAS Shrinkage?\nOracle Approximating Shrinkage provides a well-conditioned regularized covariance estimate:\n\\[\n\\Sigma_\\text{OAS} = (1 - \\rho) S + \\rho \\cdot \\text{tr}(S)/p \\cdot I\n\\]\nwhere S is the sample covariance and ρ is the optimal shrinkage intensity.\nWhy not raw sample covariance: with ~120 frames estimating a ~60×60 covariance matrix, raw estimates are singular and noisy. OAS automatically finds the optimal shrinkage toward a well-conditioned diagonal target.\nDiagnostics reported: shrinkage %, condition number, effective DOF.\n\n\n\n\nAnker, Samira, David McKechnie, Paul Mulheran, Jan Sefcik, and Karen Johnston. 2023. “Assessment of GAFF and OPLS Force Fields for Urea: Crystal and Aqueous Solution Properties.” Crystal Growth &Amp; Design 24 (1): 143–58. https://doi.org/10.1021/acs.cgd.3c00785.\n\n\nDuboué-Dijon, Elise, Philip E. Mason, Henry E. Fischer, and Pavel Jungwirth. 2017. “Hydration and Ion Pairing in Aqueous Mg&lt;sup&gt;2+&lt;/Sup&gt; and Zn&lt;sup&gt;2+&lt;/Sup&gt; Solutions: Force-Field Description Aided by Neutron Scattering Experiments and Ab Initio Molecular Dynamics Simulations.” The Journal of Physical Chemistry B 122 (13): 3296–306. https://doi.org/10.1021/acs.jpcb.7b09612.\n\n\nFuentes-Azcatl, Raúl, and José Alejandre. 2014. “Non-Polarizable Force Field of Water Based on the Dielectric Constant: TIP4P/ε.” The Journal of Physical Chemistry B 118 (5): 1263–72. https://doi.org/10.1021/jp410865y.\n\n\nLoche, Philip, Patrick Steinbrunner, Sean Friedowitz, Roland R. Netz, and Douwe Jan Bonthuis. 2021. “Transferable Ion Force Fields in Water from a Simultaneous Optimization of Ion Solvation and Ion–Ion Interaction.” The Journal of Physical Chemistry B 125 (30): 8581–87. https://doi.org/10.1021/acs.jpcb.1c05303.\n\n\nPatrone, Paul N., and Thomas W. Rosch. 2017. “Beyond Histograms: Efficiently Estimating Radial Distribution Functions via Spectral Monte Carlo.” The Journal of Chemical Physics 146 (9): 094107. https://doi.org/10.1063/1.4977516.\n\n\nWade, Alexander D., Lee-Ping Wang, and David J. Huggins. 2018. “Assimilating Radial Distribution Functions to Build Water Models with Improved Structural Properties.” Journal of Chemical Information and Modeling 58 (9): 1766–78. https://doi.org/10.1021/acs.jcim.8b00166.\n\n\nWang, Lee-Ping, Todd J. Martinez, and Vijay S. Pande. 2014. “Building Force Fields: An Automatic, Systematic, and Reproducible Approach.” The Journal of Physical Chemistry Letters 5 (11): 1885–91. https://doi.org/10.1021/jz500737m."
+    "text": "Why OAS Shrinkage?\nOracle Approximating Shrinkage provides a well-conditioned regularized covariance estimate:\n\\[\n\\Sigma_\\text{OAS} = (1 - \\rho) S + \\rho \\cdot \\text{tr}(S)/p \\cdot I\n\\]\nwhere S is the sample covariance and ρ is the optimal shrinkage intensity.\nWhy not raw sample covariance: with ~120 frames estimating a ~60×60 covariance matrix, raw estimates are singular and noisy. OAS automatically finds the optimal shrinkage toward a well-conditioned diagonal target.\nDiagnostics reported: shrinkage %, condition number, effective DOF."
   }
 ]

@@ -140,20 +140,15 @@ $$
 | Smoothness | Noisy per-frame | Inherently smooth |
 | Correlation | High | Lower |
 
-Cos basis is particularly nice because we can quickly process distances using _non-uniform FFT_ codes, and reuse existing Python functions (`scipy.fft.dct`) for inter-conversion.
+Straightforwardly: _n_ particles into _k_ modes = _O(n k)_ work.
+
+But cos basis lets us use _non-uniform FFT_ [@Barnett_2019, @Barnett_2021]: _O(n + k ln k)_ work.
+
+Can also reuse existing Python functions (`scipy.fft.dct`) for inter-conversion.
 
 ## Example
 
 ![](smc_rdf.jpg)
-
-## Computing Coefficients from Raw Distances
-
-For a frame with pair distances {rᵢ}:
-
-$$
-c_k = \sum_i \frac{1}{r_i^2} \cdot \cos(k \cdot \theta_i),
-\quad \theta_i \in [0, \pi]
-$$
 
 ## Per-Pair PCA
 
@@ -208,7 +203,7 @@ Cov(findifs) → eigendecomposition → Mahalanobis whitening
 J' = L_fd⁻¹ · J     (decorrelated across parameters)
 ```
 
-- Uses **OAS shrinkage** for robust covariance estimation
+- Uses **OAS shrinkage** for robust covariance estimation [@Chen_2010]
 - Result: each parameter's sensitivity is statistically independent
 
 ---
@@ -230,13 +225,13 @@ w = 1 (uniform — data is now uncorrelated)
 ## End-to-End Data Flow
 
 ```
-                 ┌─────────────────┐
-Trajectory       │  NUFFT per pair │    128 cosine modes
- nvt_prod.xtc ──▶│  Frame-by-frame │───▶ per frame & pair
-                 └─────────────────┘
+                ┌─────────────────┐
+Trajectory      │  NUFFT per pair │    128 cosine modes
+nvt_prod.xtcu──▶│  Frame-by-frame │───▶ per frame & pair
+                └─────────────────┘
                                                │
-                 ┌─────────────────┐            ▼
-  findif.txt ───▶│  Mahalanobis    │     ┌──────────┐
+                ┌─────────────────┐            ▼
+ findif.txt ───▶│  Mahalanobis    │     ┌──────────┐
   (∂E/∂λ per    │  whitening      │     │ Per-pair │
    frame)       └─────────────────┘     │   PCA    │
                        │                └──────────┘
@@ -287,7 +282,11 @@ $$
 - 51 RDF comparison plots (ref vs. sim at each iteration)
 - No human intervention between iterations — fully automated SLURM job
 
-## Results:
+## How It Started ...
+
+![](rdf_match_iter0.png)
+
+## ... How It's Going
 
 ![](rdf_match_iter50.png)
 
@@ -300,6 +299,11 @@ $$
 | Manually judge RDF quality | **Quantitative cost function** |
 | One simulation per guess | **Rerun = instant "what-if"** |
 | Hard to extend to new systems | **Generic: swap ref data, run** |
+
+## References
+
+::: {#refs}
+:::
 
 ## Questions? {.center}
 
